@@ -7,7 +7,7 @@ namespace LostTech.NKeyValue
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Table;
 
-    public sealed class AzureTable: IKeyValueStore<string, IDictionary<string, object>>
+    public sealed class AzureTable: IWriteableKeyValueStore<string, IDictionary<string, object>>
     {
         readonly CloudTable table;
 
@@ -24,6 +24,18 @@ namespace LostTech.NKeyValue
             var resultSet = await this.table.ExecuteQuerySegmentedAsync(query, null).ConfigureAwait(false);
             var result = resultSet.Results.FirstOrDefault();
             return result.Properties.ToDictionary(kv => kv.Key, kv => kv.Value.PropertyAsObject);
+        }
+
+        public Task Put(string key, IDictionary<string, object> value)
+        {
+            if (string.IsNullOrEmpty(key))
+                throw new ArgumentNullException(nameof(key));
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
+
+
+            var entity = new AzureTableEntity(value);
+            return this.table.ExecuteAsync(TableOperation.InsertOrReplace(entity));
         }
 
         public static async Task<AzureTable> OpenOrCreate(string accountConnectionString, string tableName)
