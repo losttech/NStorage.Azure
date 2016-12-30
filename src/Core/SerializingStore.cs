@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
-    public sealed class SerializingStore<TKey, TValue> : IKeyValueStore<TKey, TValue>
+    class SerializingStore<TKey, TValue> : IKeyValueStore<TKey, TValue>
     {
         readonly IKeyValueStore<TKey, IDictionary<string, object>> store;
         readonly Func<IDictionary<string, object>, TValue> deserializer;

@@ -2,7 +2,7 @@
 {
     using System.Threading.Tasks;
 
-    public interface IKeyValueStore<TKey, TValue>
+    public interface IKeyValueStore<in TKey, TValue>
     {
         Task<TValue> Get(TKey key);
     }
