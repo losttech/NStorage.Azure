@@ -21,5 +21,13 @@
             var serialized = await this.store.Get(key).ConfigureAwait(false);
             return deserializer(serialized);
         }
+
+        public async Task<(bool, TValue)> TryGet(TKey key)
+        {
+            var (found, serialized) = await this.store.TryGet(key).ConfigureAwait(false);
+            return found
+                ? (true,deserializer(serialized))
+                : (false,default(TValue));
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿namespace LostTech.NKeyValue
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
@@ -13,6 +14,12 @@
                 return Task.FromResult(value);
 
             return Task.FromException<TValue>(new KeyNotFoundException());
+        }
+
+        public Task<(bool, TValue)> TryGet(TKey key)
+        {
+            bool found = this.store.TryGetValue(key, out TValue value);
+            return Task.FromResult((found, value));
         }
 
         public Task Put(TKey key, TValue value)

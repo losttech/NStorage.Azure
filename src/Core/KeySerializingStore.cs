@@ -20,5 +20,11 @@
             var serializedKey = this.keySerializer(key);
             return this.store.Get(serializedKey);
         }
+
+        public Task<(bool, TValue)> TryGet(TKey key)
+        {
+            var serializedKey = this.keySerializer(key);
+            return this.store.TryGet(serializedKey);
+        }
     }
 }

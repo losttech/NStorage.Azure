@@ -13,10 +13,14 @@
                 ? Task.FromResult(value.Value) 
                 : Task.FromException<TValue>(new KeyNotFoundException());
 
-        public Task<TaggedEntry<object, TValue>> GetTagged(TKey key) =>
-            this.store.TryGetValue(key, out TaggedEntry<object, TValue> value)
-                ? Task.FromResult(value)
-                : Task.FromException<TaggedEntry<object, TValue>>(new KeyNotFoundException());
+        public Task<(bool, TValue)> TryGet(TKey key)
+        {
+            bool found = this.store.TryGetValue(key, out TaggedEntry<object, TValue> value);
+            return Task.FromResult((found, (found ? value.Value : default(TValue))));
+        }
+
+        public Task<TaggedEntry<object, TValue>> TryGetTagged(TKey key) =>
+            Task.FromResult(this.store.TryGetValue(key, out TaggedEntry<object, TValue> value) ? value : null);
 
         public Task Put(TKey key, TValue value)
         {
@@ -37,7 +41,10 @@
                 Tag = new object(),
                 Value = value,
             };
-            return Task.FromResult(this.store.TryUpdate(key, entry, oldEntry));
+            return Task.FromResult(
+                tag == null
+                    ? this.store.TryAdd(key, entry)
+                    : this.store.TryUpdate(key, entry, oldEntry));
         }
     }
 }
