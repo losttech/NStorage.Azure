@@ -13,7 +13,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Azure", "src\Azure\Azure.cs
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{C750C8D7-6AE7-4642-9656-5D6CCBBA6D78}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Azure Tests", "tests\Azure Tests\Azure Tests.csproj", "{9F9063B5-D447-461C-A278-DA38B9CF6312}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Azure Tests", "tests\Azure Tests\Azure Tests.csproj", "{9F9063B5-D447-461C-A278-DA38B9CF6312}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Repo", "Repo", "{3FF9BCF5-A1A3-4BFA-A2DF-ADB43E4E9D87}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
