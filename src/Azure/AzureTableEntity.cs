@@ -23,12 +23,19 @@
 
         public void ReadEntity(IDictionary<string, EntityProperty> properties, OperationContext operationContext)
         {
-            throw new NotImplementedException();
+            if (properties == null)
+                throw new ArgumentNullException(nameof(properties));
+            if (operationContext == null)
+                throw new ArgumentNullException(nameof(operationContext));
+
+            this.value.Clear();
+            foreach(var keyValue in properties)
+            {
+                this.value.Add(keyValue.Key, keyValue.Value.PropertyAsObject);
+            }
         }
 
         public IDictionary<string, EntityProperty> WriteEntity(OperationContext operationContext)
-        {
-            throw new NotImplementedException();
-        }
+            => this.value.ToDictionary(kv => kv.Key, kv => EntityProperty.CreateEntityPropertyFromObject(kv.Value));
     }
 }

@@ -105,12 +105,15 @@ namespace LostTech.NKeyValue
             else
             {
                 entity.ETag = tag;
-                operation = TableOperation.InsertOrReplace(entity);
+                operation = TableOperation.Replace(entity);
             }
             try
             {
-                await this.table.ExecuteAsync(TableOperation.InsertOrReplace(entity)).ConfigureAwait(false);
-                return true;
+                var result = await this.table.ExecuteAsync(operation).ConfigureAwait(false);
+                // .NET is bizzare. In my practice, when there's concurrency violation,
+                // StorageException is thrown. However, for some reason TableResult includes status code
+                // Wonder, why throw if they could just return the status code? It's a common situation...
+                return result.HttpStatusCode >= 200 && result.HttpStatusCode < 300;
             }
             catch (StorageException exception) 
                 when (exception.RequestInformation.HttpStatusCode == (int)HttpStatusCode.PreconditionFailed)
