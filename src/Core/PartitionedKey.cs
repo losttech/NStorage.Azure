@@ -2,7 +2,7 @@
 {
     using System;
 
-    public struct PartitionedKey<TPartition, TRow>
+    struct PartitionedKey<TPartition, TRow>
         : IEquatable<PartitionedKey<TPartition, TRow>>
     {
         public PartitionedKey(TPartition partition, TRow row)

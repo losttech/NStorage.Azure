@@ -1,9 +1,8 @@
 namespace LostTech.NKeyValue
 {
-    using System;
     using System.Collections.Generic;
-    using Microsoft.VisualStudio.TestTools.UnitTesting;
     using System.Threading.Tasks;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
 
     [TestClass]
     public class Integration
@@ -17,17 +16,17 @@ namespace LostTech.NKeyValue
             {
                 ["Key"] = "value0",
             });
-            var original = await table.TryGetTagged(entityKey);
+            var original = await table.TryGetVersioned(entityKey);
 
             Assert.IsTrue(await table.Put(entityKey, new Dictionary<string, object>
             {
                 ["Key"] = "value1",
-            }, tag: original.Tag));
+            }, versionToUpdate: original.Version));
             Assert.IsFalse(await table.Put(entityKey, new Dictionary<string, object>
             {
                 ["Key"] = "value2",
-            }, tag: original.Tag));
-            Assert.AreEqual("value1", (await table.TryGetTagged(entityKey)).Value["Key"]);
+            }, versionToUpdate: original.Version));
+            Assert.AreEqual("value1", (await table.TryGetVersioned(entityKey)).Value["Key"]);
         }
     }
 }

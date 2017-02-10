@@ -8,7 +8,7 @@ namespace LostTech.NKeyValue
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Table;
 
-    public sealed class AzureTable: IConcurrentKeyValueStore<string, string, IDictionary<string, object>>
+    public sealed class AzureTable: IConcurrentVersionedKeyValueStore<string, string, IDictionary<string, object>>
     {
         readonly CloudTable table;
 
@@ -71,7 +71,7 @@ namespace LostTech.NKeyValue
             return new AzureTable(table);
         }
 
-        public async Task<TaggedEntry<string, IDictionary<string, object>>> TryGetTagged(string key)
+        public async Task<VersionedEntry<string, IDictionary<string, object>>> TryGetVersioned(string key)
         {
             if (string.IsNullOrEmpty(key))
                 throw new ArgumentNullException(nameof(key));
@@ -82,14 +82,14 @@ namespace LostTech.NKeyValue
             if (result == null)
                 return null;
 
-            return new TaggedEntry<string, IDictionary<string, object>>
+            return new VersionedEntry<string, IDictionary<string, object>>
             {
-                Tag = result.ETag,
+                Version = result.ETag,
                 Value = result.Properties.ToDictionary(kv => kv.Key, kv => kv.Value.PropertyAsObject),
             };
         }
 
-        public async Task<bool> Put(string key, IDictionary<string, object> value, string tag)
+        public async Task<bool> Put(string key, IDictionary<string, object> value, string versionToUpdate)
         {
             if (string.IsNullOrEmpty(key))
                 throw new ArgumentNullException(nameof(key));
@@ -98,13 +98,13 @@ namespace LostTech.NKeyValue
 
             var entity = new AzureTableEntity(key, value);
             TableOperation operation;
-            if (tag == null)
+            if (versionToUpdate == null)
             {
                 operation = TableOperation.Insert(entity);
             }
             else
             {
-                entity.ETag = tag;
+                entity.ETag = versionToUpdate;
                 operation = TableOperation.Replace(entity);
             }
             try

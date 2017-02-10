@@ -5,10 +5,26 @@
 
     public static class KeyValueStore
     {
+        /// <summary>
+        /// Wraps <see cref="String"/>-keyed store to use <typeparamref name="TKey"/> for keys, using the provided key serializer.
+        /// </summary>
+        /// <typeparam name="TKey">Type of keys to use</typeparam>
+        /// <typeparam name="TValue">Type of store values</typeparam>
+        /// <param name="store"><see cref="String"/>-keyed store to wrap</param>
+        /// <param name="keySerializer">Serializer, that converts <typeparamref name="TKey"/> keys into string keys</param>
         public static IWriteableKeyValueStore<TKey, TValue> WithKey<TKey, TValue>(
             this IWriteableKeyValueStore<string, TValue> store, Func<TKey, string> keySerializer) =>
             new WriteableKeySerializingStore<TKey, TValue>(store, keySerializer);
 
+        /// <summary>
+        /// Wraps dictionary-valued store to use <typeparamref name="TValue"/> for values, using the provided codec.
+        /// </summary>
+        /// <typeparam name="TKey">Type of store keys</typeparam>
+        /// <typeparam name="TValue">Type of values to use</typeparam>
+        /// <param name="store">Dictionary-valued store to wrap</param>
+        /// <param name="deserializer">Deserializer (decoder) for values</param>
+        /// <param name="serializer">Serializer (encoder) for values</param>
+        /// <returns></returns>
         public static IWriteableKeyValueStore<TKey, TValue> WithValue<TKey, TValue>(
             this IWriteableKeyValueStore<TKey, IDictionary<string, object>> store,
             Func<IDictionary<string, object>, TValue> deserializer,
