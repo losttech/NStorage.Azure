@@ -1,6 +1,5 @@
-﻿namespace LostTech.NKeyValue
+namespace LostTech.NKeyValue.InMemory
 {
-    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
 

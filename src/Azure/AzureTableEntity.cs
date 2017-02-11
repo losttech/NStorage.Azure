@@ -19,7 +19,7 @@
         public string ETag { get; set; } = "*";
         public string PartitionKey { get; set; }
         public string RowKey { get; set; }
-        public DateTimeOffset Timestamp { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public DateTimeOffset Timestamp { get; set; }
 
         public void ReadEntity(IDictionary<string, EntityProperty> properties, OperationContext operationContext)
         {

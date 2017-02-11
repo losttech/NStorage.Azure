@@ -1,9 +1,9 @@
-﻿namespace LostTech.NKeyValue
+﻿namespace LostTech.NKeyValue.Wrappers
 {
     using System;
     using System.Threading.Tasks;
 
-    sealed class WriteableKeySerializingStore<TKey, TValue>: KeySerializingStore<TKey, TValue>,
+    class WriteableKeySerializingStore<TKey, TValue>: KeySerializingStore<TKey, TValue>,
         IWriteableKeyValueStore<TKey, TValue>
     {
         readonly IWriteableKeyValueStore<string, TValue> store;

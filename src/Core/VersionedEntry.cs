@@ -20,5 +20,17 @@
 
             return EqualityComparer<TVersion>.Default.Equals(this.Version, other.Version);
         }
+
+        public VersionedEntry<TVersion, TNew> Select<TNew>(Func<T, TNew> selector)
+        {
+            if (selector == null)
+                throw new ArgumentNullException(nameof(selector));
+
+            return new VersionedEntry<TVersion, TNew>
+            {
+                Value = selector(this.Value),
+                Version = this.Version,
+            };
+        }
     }
 }

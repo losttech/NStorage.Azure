@@ -1,4 +1,4 @@
-﻿namespace LostTech.NKeyValue
+﻿namespace LostTech.NKeyValue.Wrappers
 {
     using System;
     using System.Threading.Tasks;

@@ -1,9 +1,8 @@
-﻿namespace LostTech.NKeyValue
+namespace LostTech.NKeyValue.InMemory
 {
-    using System;
-    using System.Threading.Tasks;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Implements in-memory store, backed by <see cref="ConcurrentDictionary{TKey,TValue}"/>
