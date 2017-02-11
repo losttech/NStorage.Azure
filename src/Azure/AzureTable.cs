@@ -116,7 +116,8 @@ namespace LostTech.NKeyValue
                 return result.HttpStatusCode >= 200 && result.HttpStatusCode < 300;
             }
             catch (StorageException exception) 
-                when (exception.RequestInformation.HttpStatusCode == (int)HttpStatusCode.PreconditionFailed)
+                when (exception.RequestInformation.HttpStatusCode == (int)HttpStatusCode.PreconditionFailed
+                    || exception.RequestInformation.HttpStatusCode == (int)HttpStatusCode.Conflict)
             {
                 return false;
             }

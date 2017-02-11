@@ -10,7 +10,7 @@ namespace LostTech.NKeyValue
         [TestMethod]
         public async Task ConcurrentUpdate()
         {
-            var table = await AzureTable.OpenOrCreate("UseDevelopmentStorage=true", "test");
+            var table = await GetTestTable();
             string entityKey = nameof(this.ConcurrentUpdate);
             await table.Put(entityKey, new Dictionary<string, object>
             {
@@ -27,6 +27,17 @@ namespace LostTech.NKeyValue
                 ["Key"] = "value2",
             }, versionToUpdate: original.Version));
             Assert.AreEqual("value1", (await table.TryGetVersioned(entityKey)).Value["Key"]);
+        }
+
+        private static Task<AzureTable> GetTestTable() => AzureTable.OpenOrCreate("UseDevelopmentStorage=true", "test");
+
+        [TestMethod]
+        public async Task ConcurrentInsert()
+        {
+            var table = await GetTestTable();
+            string entityKey = nameof(this.ConcurrentInsert);
+            await table.Put(entityKey, new Dictionary<string, object> {["Key"] = "value0"});
+            Assert.IsFalse(await table.Put(entityKey, new Dictionary<string, object>{["Key"] = "value1"}, null));
         }
     }
 }
