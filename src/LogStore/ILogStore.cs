@@ -5,6 +5,7 @@
 
     public interface ILogStore<T>
     {
-        Task Add(DateTimeOffset timestamp, T entry);
+        Task Add(LogEntry<T> entry);
+        IAsyncQueryResultEnumerator<LogEntry<T>> Query(DateTimeOffset start, DateTimeOffset end, string correlationID);
     }
 }
