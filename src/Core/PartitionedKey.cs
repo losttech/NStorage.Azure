@@ -2,8 +2,7 @@
 {
     using System;
 
-    struct PartitionedKey<TPartition, TRow>
-        : IEquatable<PartitionedKey<TPartition, TRow>>
+    public struct PartitionedKey<TPartition, TRow>: IEquatable<PartitionedKey<TPartition, TRow>>
     {
         public PartitionedKey(TPartition partition, TRow row)
         {
@@ -25,5 +24,10 @@
         }
 
         public override int GetHashCode() => this.Partition.GetHashCode() * 31 + this.Row.GetHashCode();
+    }
+
+    public static class PartitionedKey
+    {
+        public static PartitionedKey<TKey, TKey> Of<TKey>(TKey key) => new PartitionedKey<TKey, TKey>(key, key);
     }
 }

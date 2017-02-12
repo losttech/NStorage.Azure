@@ -11,6 +11,11 @@
 
         public Task Add(LogEntry<T> entry)
         {
+            if (entry == null)
+                throw new ArgumentNullException(nameof(entry));
+            if (entry.CorrelationID == null)
+                throw new ArgumentNullException(nameof(entry.CorrelationID));
+
             this.entries.Add(new SortedLogEntryKey(entry.Timestamp, entry.CorrelationID), entry.Value);
             return Task.CompletedTask;
         }

@@ -5,14 +5,16 @@
     using System.Linq;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Table;
+    using Key = PartitionedKey<string, string>;
 
     sealed class AzureTableEntity : ITableEntity
     {
         readonly IDictionary<string, object> value;
-        public AzureTableEntity(string rowKey, IDictionary<string, object> value, string partitionKey = null)
+        public AzureTableEntity(Key key, IDictionary<string, object> value)
         {
-            this.RowKey = rowKey ?? throw new ArgumentNullException(nameof(rowKey));
-            this.PartitionKey = partitionKey ?? rowKey;
+            AzureTable.CheckKey(key);
+            this.RowKey = key.Row;
+            this.PartitionKey = key.Partition;
             this.value = value ?? throw new ArgumentNullException(nameof(value));
         }
 

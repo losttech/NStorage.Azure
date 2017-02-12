@@ -11,7 +11,7 @@ namespace LostTech.NKeyValue
         public async Task ConcurrentUpdate()
         {
             var table = await GetTestTable();
-            string entityKey = nameof(this.ConcurrentUpdate);
+            var entityKey = PartitionedKey.Of(nameof(this.ConcurrentUpdate));
             await table.Put(entityKey, new Dictionary<string, object>
             {
                 ["Key"] = "value0",
@@ -35,7 +35,7 @@ namespace LostTech.NKeyValue
         public async Task ConcurrentInsert()
         {
             var table = await GetTestTable();
-            string entityKey = nameof(this.ConcurrentInsert);
+            var entityKey = PartitionedKey.Of(nameof(this.ConcurrentInsert));
             await table.Put(entityKey, new Dictionary<string, object> {["Key"] = "value0"});
             Assert.IsFalse(await table.Put(entityKey, new Dictionary<string, object>{["Key"] = "value1"}, null));
         }

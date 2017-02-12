@@ -3,13 +3,13 @@
     using System;
     using System.Threading.Tasks;
 
-    class WriteableKeySerializingStore<TKey, TValue>: KeySerializingStore<TKey, TValue>,
+    class WriteableKeySerializingStore<TKey, TOldKey, TValue>: KeySerializingStore<TKey, TOldKey, TValue>,
         IWriteableKeyValueStore<TKey, TValue>
     {
-        readonly IWriteableKeyValueStore<string, TValue> store;
+        readonly IWriteableKeyValueStore<TOldKey, TValue> store;
 
-        public WriteableKeySerializingStore(IWriteableKeyValueStore<string, TValue> store,
-            Func<TKey, string> keySerializer):base(store, keySerializer)
+        public WriteableKeySerializingStore(IWriteableKeyValueStore<TOldKey, TValue> store,
+            Func<TKey, TOldKey> keySerializer):base(store, keySerializer)
         {
             this.store = store;
         }

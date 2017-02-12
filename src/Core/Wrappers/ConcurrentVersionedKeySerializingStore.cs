@@ -5,14 +5,14 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    class ConcurrentVersionedKeySerializingStore<TKey, TVersion, TValue> :
-        WriteableKeySerializingStore<TKey, TValue>,
+    class ConcurrentVersionedKeySerializingStore<TKey, TOldKey, TVersion, TValue> :
+        WriteableKeySerializingStore<TKey, TOldKey, TValue>,
         IConcurrentVersionedKeyValueStore<TKey, TVersion, TValue>
     {
-        readonly IConcurrentVersionedKeyValueStore<string, TVersion, TValue> store;
+        readonly IConcurrentVersionedKeyValueStore<TOldKey, TVersion, TValue> store;
 
-        public ConcurrentVersionedKeySerializingStore(IConcurrentVersionedKeyValueStore<string, TVersion, TValue> store,
-            Func<TKey, string> keySerializer) : base(store, keySerializer)
+        public ConcurrentVersionedKeySerializingStore(IConcurrentVersionedKeyValueStore<TOldKey, TVersion, TValue> store,
+            Func<TKey, TOldKey> keySerializer) : base(store, keySerializer)
         {
             this.store = store;
         }

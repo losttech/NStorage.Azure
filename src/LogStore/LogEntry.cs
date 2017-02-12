@@ -4,7 +4,7 @@
 
     public sealed class LogEntry<T>
     {
-        public DateTimeOffset Timestamp { get; set; }
+        public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
         public string CorrelationID { get; set; }
         public T Value { get; set; }
     }

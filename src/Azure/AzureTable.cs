@@ -7,8 +7,9 @@ namespace LostTech.NKeyValue
     using System.Threading.Tasks;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Table;
+    using Key = PartitionedKey<string, string>;
 
-    public sealed class AzureTable: IConcurrentVersionedKeyValueStore<string, string, IDictionary<string, object>>
+    public sealed class AzureTable: IConcurrentVersionedKeyValueStore<Key, string, IDictionary<string, object>>
     {
         readonly CloudTable table;
 
@@ -17,16 +18,16 @@ namespace LostTech.NKeyValue
             this.table = table ?? throw new ArgumentNullException(nameof(table));
         }
 
-        public async Task<IDictionary<string, object>> Get(string key)
+        public async Task<IDictionary<string, object>> Get(Key key)
         {
+            CheckKey(key);
             var (found, result) = await this.TryGet(key).ConfigureAwait(false);
             return found ? result : throw new KeyNotFoundException();
         }
 
-        public async Task<(bool, IDictionary<string, object>)> TryGet(string key)
+        public async Task<(bool, IDictionary<string, object>)> TryGet(Key key)
         {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
+            CheckKey(key);
 
             var query = MakeQueryByKey(key);
             var resultSet = await this.table.ExecuteQuerySegmentedAsync(query, null).ConfigureAwait(false);
@@ -36,19 +37,18 @@ namespace LostTech.NKeyValue
             return (true, result.Properties.ToDictionary(kv => kv.Key, kv => kv.Value.PropertyAsObject));
         }
 
-        private static TableQuery MakeQueryByKey(string key)
+        private static TableQuery MakeQueryByKey(Key key)
         {
             return new TableQuery().Where(
                 TableQuery.CombineFilters(
-                    TableQuery.GenerateFilterCondition(nameof(ITableEntity.RowKey), QueryComparisons.Equal, key),
+                    TableQuery.GenerateFilterCondition(nameof(ITableEntity.RowKey), QueryComparisons.Equal, key.Row),
                     TableOperators.And,
-                    TableQuery.GenerateFilterCondition(nameof(ITableEntity.PartitionKey), QueryComparisons.Equal, key)));
+                    TableQuery.GenerateFilterCondition(nameof(ITableEntity.PartitionKey), QueryComparisons.Equal, key.Partition)));
         }
 
-        public Task Put(string key, IDictionary<string, object> value)
+        public Task Put(Key key, IDictionary<string, object> value)
         {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
+            CheckKey(key);
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
@@ -71,10 +71,9 @@ namespace LostTech.NKeyValue
             return new AzureTable(table);
         }
 
-        public async Task<VersionedEntry<string, IDictionary<string, object>>> TryGetVersioned(string key)
+        public async Task<VersionedEntry<string, IDictionary<string, object>>> TryGetVersioned(Key key)
         {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
+            CheckKey(key);
 
             var query = MakeQueryByKey(key);
             var resultSet = await this.table.ExecuteQuerySegmentedAsync(query, null).ConfigureAwait(false);
@@ -89,10 +88,9 @@ namespace LostTech.NKeyValue
             };
         }
 
-        public async Task<bool> Put(string key, IDictionary<string, object> value, string versionToUpdate)
+        public async Task<bool> Put(Key key, IDictionary<string, object> value, string versionToUpdate)
         {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
+            CheckKey(key);
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
@@ -121,6 +119,14 @@ namespace LostTech.NKeyValue
             {
                 return false;
             }
+        }
+
+        internal static void CheckKey(Key key)
+        {
+            if (string.IsNullOrEmpty(key.Partition))
+                throw new ArgumentNullException(nameof(key.Partition));
+            if (string.IsNullOrEmpty(key.Row))
+                throw new ArgumentNullException(nameof(key.Row));
         }
     }
 }

@@ -13,9 +13,9 @@
         /// <typeparam name="TValue">Type of store values</typeparam>
         /// <param name="store"><see cref="String"/>-keyed store to wrap</param>
         /// <param name="keySerializer">Serializer, that converts <typeparamref name="TKey"/> keys into string keys</param>
-        public static IWriteableKeyValueStore<TKey, TValue> WithKey<TKey, TValue>(
-            this IWriteableKeyValueStore<string, TValue> store, Func<TKey, string> keySerializer) =>
-            new WriteableKeySerializingStore<TKey, TValue>(store, keySerializer);
+        public static IWriteableKeyValueStore<TKey, TValue> WithKey<TKey, TOldKey, TValue>(
+            this IWriteableKeyValueStore<TOldKey, TValue> store, Func<TKey, TOldKey> keySerializer) =>
+            new WriteableKeySerializingStore<TKey, TOldKey, TValue>(store, keySerializer);
 
         /// <summary>
         /// Wraps dictionary-valued store to use <typeparamref name="TValue"/> for values, using the provided codec.
@@ -39,9 +39,9 @@
         /// <typeparam name="TValue">Type of store values</typeparam>
         /// <param name="store"><see cref="String"/>-keyed store to wrap</param>
         /// <param name="keySerializer">Serializer, that converts <typeparamref name="TKey"/> keys into string keys</param>
-        public static IConcurrentVersionedKeyValueStore<TKey, TVersion, TValue> WithKey<TKey, TVersion, TValue>(
-            this IConcurrentVersionedKeyValueStore<string, TVersion, TValue> store, Func<TKey, string> keySerializer) =>
-            new ConcurrentVersionedKeySerializingStore<TKey, TVersion, TValue>(store, keySerializer);
+        public static IConcurrentVersionedKeyValueStore<TKey, TVersion, TValue> WithKey<TKey, TOldKey, TVersion, TValue>(
+            this IConcurrentVersionedKeyValueStore<TOldKey, TVersion, TValue> store, Func<TKey, TOldKey> keySerializer) =>
+            new ConcurrentVersionedKeySerializingStore<TKey, TOldKey, TVersion, TValue>(store, keySerializer);
 
         /// <summary>
         /// Wraps dictionary-valued store to use <typeparamref name="TValue"/> for values, using the provided codec.
@@ -57,5 +57,10 @@
             Func<IDictionary<string, object>, TValue> deserializer,
             Action<TValue, IDictionary<string, object>> serializer)
             => new ConcurrentVersionedSerializingStore<TKey, TVersion, TValue>(store, deserializer, serializer);
+
+        public static IConcurrentVersionedKeyValueStore<TKey, TVersion, TValue> 
+            WithRowKeyAsPartitionKey<TStore, TKey, TVersion, TValue>(
+                this IConcurrentVersionedKeyValueStore<PartitionedKey<TKey, TKey>, TVersion, TValue> partitionedStore)
+            => partitionedStore.WithKey((TKey key) => new PartitionedKey<TKey, TKey>(key, key));
     }
 }
