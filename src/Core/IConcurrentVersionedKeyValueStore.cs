@@ -29,24 +29,7 @@
         Task<bool> Put(TKey key, TValue value, TVersion versionToUpdate);
     }
 
-    public interface IConcurrentVersionedKeyValueStore<in TKey, TValue> : IWriteableKeyValueStore<TKey, TValue>
+    public interface IConcurrentVersionedKeyValueStore<in TKey, TValue> : IConcurrentVersionedKeyValueStore<TKey, object, TValue>
     {
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
-        Task<VersionedEntry<object, TValue>> TryGetVersioned(TKey key);
-        /// <summary>
-        /// Tries to set the value for the specified key.
-        /// Operation will be cancelled if <paramref name="versionToUpdate"/> does not match currently stored version for the key.
-        /// Returns <c>true</c>, if value was updated.
-        /// Returns <c>false</c>, if <paramref name="versionToUpdate"/> does not match stored one.
-        /// </summary>
-        /// <param name="key">The key to set the value for</param>
-        /// <param name="value">New value for the key</param>
-        /// <param name="versionToUpdate">Stored value must be of this version to be updated.
-        /// If stored version is different, update is cancelled, and function returns <c>false</c></param>
-        Task<bool> Put(TKey key, TValue value, object version);
     }
 }

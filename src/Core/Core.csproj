@@ -10,6 +10,9 @@
     <EmbeddedResource Include="**\*.resx" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Query\FilteringAsyncEnumerator.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="System.ValueTuple" Version="4.3.0" />
   </ItemGroup>
 </Project>
