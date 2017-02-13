@@ -5,7 +5,7 @@ namespace LostTech.NKeyValue
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
     [TestClass]
-    public class Integration
+    public class AzureTableIntegration
     {
         [TestMethod]
         public async Task ConcurrentUpdate()
@@ -29,7 +29,8 @@ namespace LostTech.NKeyValue
             Assert.AreEqual("value1", (await table.TryGetVersioned(entityKey)).Value["Key"]);
         }
 
-        private static Task<AzureTable> GetTestTable() => AzureTable.OpenOrCreate("UseDevelopmentStorage=true", "test");
+        private static Task<AzureTable> GetTestTable() 
+            => AzureTable.OpenOrCreate("UseDevelopmentStorage=true", nameof(AzureTableIntegration) + "test");
 
         [TestMethod]
         public async Task ConcurrentInsert()
