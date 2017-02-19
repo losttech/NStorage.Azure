@@ -1,4 +1,4 @@
-namespace LostTech.NKeyValue
+namespace LostTech.Storage
 {
     using System;
     using System.Collections.Generic;

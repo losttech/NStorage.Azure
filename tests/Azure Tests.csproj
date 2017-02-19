@@ -14,8 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Azure\Azure.csproj" />
-    <ProjectReference Include="..\..\src\Core\Core.csproj" />
+    <ProjectReference Include="..\..\..\KeyValue\src\NKeyValue.csproj" />
+    <ProjectReference Include="..\..\..\Queue\src\NQueue.csproj" />
+    <ProjectReference Include="..\src\Azure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
