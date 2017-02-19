@@ -6,10 +6,14 @@ namespace LostTech.NKeyValue
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.WindowsAzure.Storage;
+    using Microsoft.WindowsAzure.Storage.File;
     using Microsoft.WindowsAzure.Storage.Table;
     using Key = PartitionedKey<string, string>;
+    using Value = System.Collections.Generic.IDictionary<string, object>;
 
-    public sealed class AzureTable: IConcurrentVersionedKeyValueStore<Key, string, IDictionary<string, object>>
+    public sealed class AzureTable:
+        IConcurrentVersionedKeyValueStore<Key, string, Value>,
+        IPartitionedKeyValueStore<string, string, Value>
     {
         readonly CloudTable table;
 
@@ -18,14 +22,14 @@ namespace LostTech.NKeyValue
             this.table = table ?? throw new ArgumentNullException(nameof(table));
         }
 
-        public async Task<IDictionary<string, object>> Get(Key key)
+        public async Task<Value> Get(Key key)
         {
             CheckKey(key);
             var (found, result) = await this.TryGet(key).ConfigureAwait(false);
             return found ? result : throw new KeyNotFoundException();
         }
 
-        public async Task<(bool, IDictionary<string, object>)> TryGet(Key key)
+        public async Task<(bool, Value)> TryGet(Key key)
         {
             CheckKey(key);
 
@@ -46,7 +50,7 @@ namespace LostTech.NKeyValue
                     TableQuery.GenerateFilterCondition(nameof(ITableEntity.PartitionKey), QueryComparisons.Equal, key.Partition)));
         }
 
-        public Task Put(Key key, IDictionary<string, object> value)
+        public Task Put(Key key, Value value)
         {
             CheckKey(key);
             if (value == null)
@@ -71,7 +75,7 @@ namespace LostTech.NKeyValue
             return new AzureTable(table);
         }
 
-        public async Task<VersionedEntry<string, IDictionary<string, object>>> TryGetVersioned(Key key)
+        public async Task<VersionedEntry<string, Value>> TryGetVersioned(Key key)
         {
             CheckKey(key);
 
@@ -81,14 +85,14 @@ namespace LostTech.NKeyValue
             if (result == null)
                 return null;
 
-            return new VersionedEntry<string, IDictionary<string, object>>
+            return new VersionedEntry<string, Value>
             {
                 Version = result.ETag,
                 Value = result.Properties.ToDictionary(kv => kv.Key, kv => kv.Value.PropertyAsObject),
             };
         }
 
-        public async Task<bool> Put(Key key, IDictionary<string, object> value, string versionToUpdate)
+        public async Task<bool> Put(Key key, Value value, string versionToUpdate)
         {
             CheckKey(key);
             if (value == null)
@@ -128,5 +132,24 @@ namespace LostTech.NKeyValue
             if (string.IsNullOrEmpty(key.Row))
                 throw new ArgumentNullException(nameof(key.Row));
         }
+
+        public IAsyncQueryResultEnumerator<KeyValuePair<Key, Value>> Query(Range<string> partitionRange, Range<string> rowRange)
+        {
+            var filter = TableQuery.CombineFilters(
+                RangeFilter(nameof(ITableEntity.RowKey), rowRange),
+                TableOperators.And,
+                RangeFilter(nameof(ITableEntity.PartitionKey), partitionRange));
+            var query = new TableQuery().Where(filter);
+
+            Func<TableContinuationToken, Task<TableQuerySegment>> pager = token => this.table.ExecuteQuerySegmentedAsync(query, token);
+            var firstSegment = pager(null);
+            return new AzureTableSegmentedEnumerator(pager, firstSegment);
+        }
+
+        static string RangeFilter(string propertyName, Range<string> range) =>
+            TableQuery.CombineFilters(
+                TableQuery.GenerateFilterCondition(propertyName, QueryComparisons.GreaterThanOrEqual, range.Start),
+                TableOperators.And,
+                TableQuery.GenerateFilterCondition(propertyName, QueryComparisons.GreaterThanOrEqual, range.End));
     }
 }
