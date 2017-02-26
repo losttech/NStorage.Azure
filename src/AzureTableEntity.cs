@@ -10,12 +10,16 @@
     sealed class AzureTableEntity : ITableEntity
     {
         readonly IDictionary<string, object> value;
-        public AzureTableEntity(Key key, IDictionary<string, object> value)
+        public AzureTableEntity(Key key, IDictionary<string, object> value) : this(key)
+        {
+            this.value = value ?? throw new ArgumentNullException(nameof(value));
+        }
+
+        private AzureTableEntity(Key key)
         {
             AzureTable.CheckKey(key);
             this.RowKey = key.Row;
             this.PartitionKey = key.Partition;
-            this.value = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         public string ETag { get; set; } = "*";
@@ -39,5 +43,7 @@
 
         public IDictionary<string, EntityProperty> WriteEntity(OperationContext operationContext)
             => this.value.ToDictionary(kv => kv.Key, kv => EntityProperty.CreateEntityPropertyFromObject(kv.Value));
+
+        internal static AzureTableEntity KeyOnly(Key key) => new AzureTableEntity(key);
     }
 }
