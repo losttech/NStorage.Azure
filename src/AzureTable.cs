@@ -2,8 +2,10 @@ namespace LostTech.Storage
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Net;
+    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Table;
@@ -43,11 +45,17 @@ namespace LostTech.Storage
             var result = resultSet.Results.FirstOrDefault();
             if (result == null)
                 return (false, null);
-            return (true, result.Properties.ToDictionary(kv => kv.Key, kv => kv.Value.PropertyAsObject));
+            return (true, ParseValue(result));
         }
+
+        static Dictionary<string, object> ParseValue(DynamicTableEntity result) =>
+            result.Properties
+                .Where(kv => AzureTableEntity.IsKey(kv.Key))
+                .ToDictionary(kv => AzureTableEntity.DecodeKey(kv.Key), kv => kv.Value.PropertyAsObject);
 
         private static TableQuery MakeQueryByKey(Key key)
         {
+            key = KeyEncode(key);
             return new TableQuery().Where(
                 TableQuery.CombineFilters(
                     TableQuery.GenerateFilterCondition(nameof(ITableEntity.RowKey), QueryComparisons.Equal, key.Row),
@@ -61,7 +69,7 @@ namespace LostTech.Storage
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
-
+            key = KeyEncode(key);
             var entity = new AzureTableEntity(key, value);
             return this.table.ExecuteAsync(TableOperation.InsertOrReplace(entity));
         }
@@ -93,7 +101,7 @@ namespace LostTech.Storage
             return new VersionedEntry<string, Value>
             {
                 Version = result.ETag,
-                Value = result.Properties.ToDictionary(kv => kv.Key, kv => kv.Value.PropertyAsObject),
+                Value = ParseValue(result),
             };
         }
 
@@ -122,6 +130,7 @@ namespace LostTech.Storage
 
         static TableOperation MakePutOperation(Key key, Value value, string versionToUpdate)
         {
+            key = KeyEncode(key);
             var entity = new AzureTableEntity(key, value);
             TableOperation operation;
             if (versionToUpdate == null) {
@@ -198,7 +207,9 @@ namespace LostTech.Storage
             return await ExecuteAsync(batch).ConfigureAwait(false);
         }
 
-        static TableOperation MakeDeleteOperation(Key key, string versionToDelete) {
+        static TableOperation MakeDeleteOperation(Key key, string versionToDelete)
+        {
+            key = KeyEncode(key);
             var entity = AzureTableEntity.KeyOnly(key);
             entity.ETag = versionToDelete;
             return TableOperation.Delete(entity);
@@ -208,7 +219,7 @@ namespace LostTech.Storage
         {
             CheckKey(key);
 
-
+            key = KeyEncode(key);
             var entity = AzureTableEntity.KeyOnly(key);
             await this.table.ExecuteAsync(TableOperation.Delete(entity)).ConfigureAwait(false);
             // TODO: implement return code
@@ -241,23 +252,53 @@ namespace LostTech.Storage
                 throw new NotSupportedException(EntityCanOnlyAppearOnceInBatch);
         }
 
-        public IAsyncQueryResultEnumerator<KeyValuePair<Key, Value>> Query(Range<string> partitionRange, Range<string> rowRange)
+        public int? PageSizeLimit => 1000;
+
+        public async Task<PagedQueryResult<KeyValuePair<Key, Value>>> Query(Range<string> partitionRange, Range<string> rowRange,
+            int? pageSize = null, object continuationToken = null)
         {
+            if (continuationToken != null && !(continuationToken is TableContinuationToken))
+                throw new ArgumentException(paramName: nameof(continuationToken), message: "Unexpected type");
+            if ((pageSize ?? 1) <= 0)
+                throw new ArgumentOutOfRangeException(paramName: nameof(pageSize));
+            if ((PageSizeLimit ?? int.MaxValue) < (pageSize ?? 1))
+                throw new ArgumentOutOfRangeException(paramName: nameof(pageSize), message: "Too many records requested");
+
             var filter = TableQuery.CombineFilters(
                 RangeFilter(nameof(ITableEntity.RowKey), rowRange),
                 TableOperators.And,
                 RangeFilter(nameof(ITableEntity.PartitionKey), partitionRange));
-            var query = new TableQuery().Where(filter);
 
-            Func<TableContinuationToken, Task<TableQuerySegment>> pager = token => this.table.ExecuteQuerySegmentedAsync(query, token);
-            var firstSegment = pager(null);
-            return new AzureTableSegmentedEnumerator(pager, firstSegment);
+            var query = new TableQuery {
+                TakeCount = pageSize,
+            }.Where(filter);
+
+            var page = await this.table.ExecuteQuerySegmentedAsync(query, (TableContinuationToken)continuationToken).ConfigureAwait(false);
+            var results = page.Results.Select(entity => new KeyValuePair<Key, Value>(
+                    key: new Key(partition: KeyDecode(entity.PartitionKey), row: KeyDecode(entity.RowKey)),
+                    value: ParseValue(entity)
+                )).ToArray();
+            return new PagedQueryResult<KeyValuePair<Key, Value>>(results, page.ContinuationToken);
         }
 
         static string RangeFilter(string propertyName, Range<string> range) =>
             TableQuery.CombineFilters(
-                TableQuery.GenerateFilterCondition(propertyName, QueryComparisons.GreaterThanOrEqual, range.Start),
+                TableQuery.GenerateFilterCondition(propertyName, QueryComparisons.GreaterThanOrEqual, KeyEncode(range.Start)),
                 TableOperators.And,
-                TableQuery.GenerateFilterCondition(propertyName, QueryComparisons.GreaterThanOrEqual, range.End));
+                TableQuery.GenerateFilterCondition(propertyName, QueryComparisons.GreaterThanOrEqual, KeyEncode(range.End)));
+
+        static readonly Regex UnsupportedKeyCharRegex = new Regex(@"[\\/#\?%]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        static readonly Regex UnsupportedEscapedKeyCharRegex = new Regex(@"\%[a-f0-9]{2}", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        public static string KeyEncode(string key) =>
+            string.IsNullOrEmpty(key)
+            ? throw new ArgumentNullException(nameof(key))
+            : UnsupportedKeyCharRegex.Replace(key, badMatch => $"%{(byte)badMatch.Value[0]:x2}");
+        static Key KeyEncode(Key key) => new Key(partition: KeyEncode(key.Partition), row: KeyEncode(key.Row));
+        public static string KeyDecode(string key) =>
+            string.IsNullOrEmpty(key)
+            ? throw new ArgumentNullException(nameof(key))
+            : UnsupportedEscapedKeyCharRegex.Replace(key, badMatch => ((char)Byte.Parse(badMatch.Value.Substring(1), NumberStyles.HexNumber)).ToString());
+        static Key KeyDecode(Key key) => new Key(partition: KeyDecode(key.Partition), row: KeyDecode(key.Row));
     }
 }

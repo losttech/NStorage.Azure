@@ -2,9 +2,9 @@
 
   <PropertyGroup>    
     <TargetFramework>netcoreapp1.0</TargetFramework>    
-    <RootNamespace>LostTech.NKeyValue</RootNamespace>
+    <RootNamespace>LostTech.Storage</RootNamespace>
     <PackageTargetFallback Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">$(PackageTargetFallback);dotnet5.6;portable-net451+win8</PackageTargetFallback>
-    <AssemblyName>LostTech.NKeyValue.AzureTests</AssemblyName>
+    <AssemblyName>LostTech.Storage.AzureTests</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

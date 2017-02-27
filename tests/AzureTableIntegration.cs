@@ -1,4 +1,4 @@
-namespace LostTech.Storage
+﻿namespace LostTech.Storage
 {
     using System;
     using System.Collections.Generic;
@@ -26,7 +26,8 @@ namespace LostTech.Storage
 
             Assert.IsTrue((await table.Put(entityKey, new Dict { ["Key"] = "value1" }, versionToUpdate: original.Version)).Item1);
             Assert.IsFalse((await table.Put(entityKey, new Dict { ["Key"] = "value2" }, versionToUpdate: original.Version)).Item1);
-            Assert.AreEqual("value1", (await table.TryGetVersioned(entityKey)).Value["Key"]);
+            var newEntry = await table.TryGetVersioned(entityKey);
+            Assert.AreEqual("value1", newEntry.Value["Key"]);
         }
 
         private static async Task<AzureTable> GetTestTable([CallerMemberName] string tableName = null)
@@ -35,7 +36,7 @@ namespace LostTech.Storage
                 throw new ArgumentNullException(nameof(tableName));
             var account = CloudStorageAccount.Parse("UseDevelopmentStorage=true");
             var tableClient = account.CreateCloudTableClient();
-            var table = tableClient.GetTableReference(tableName);
+            var table = tableClient.GetTableReference(tableName + "IntegTest");
             await table.DeleteIfExistsAsync().ConfigureAwait(false);
             await table.CreateAsync().ConfigureAwait(false);
             return new AzureTable(table);
@@ -97,6 +98,17 @@ namespace LostTech.Storage
             });
             Assert.IsTrue(putResult);
             Assert.IsNotNull(await table.TryGetVersioned(key2));
+        }
+
+        [TestMethod]
+        public async Task KeysAreEncoded()
+        {
+            var table = await GetTestTable();
+            const string disallowedCharacters = "\\/#?а";
+            var key = new Key(disallowedCharacters, disallowedCharacters);
+            await table.Put(key, new Dict {[disallowedCharacters] = disallowedCharacters});
+            var roundTrip = await table.Get(key);
+            Assert.AreEqual(disallowedCharacters, roundTrip[disallowedCharacters]);
         }
     }
 }
