@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -109,6 +110,42 @@
             await table.Put(key, new Dict {[disallowedCharacters] = disallowedCharacters});
             var roundTrip = await table.Get(key);
             Assert.AreEqual(disallowedCharacters, roundTrip[disallowedCharacters]);
+        }
+
+        [TestMethod]
+        public async Task Querying()
+        {
+            var table = await GetTestTable();
+            var key = PartitionedKey.Of(nameof(this.Querying));
+            var aToZ = new Range<string>("A", "Z");
+            var aToS = new Range<string>("A", "M");
+            var exactRange = Range.SingleElement(nameof(this.Querying));
+
+            await table.Put(key, new Dict {});
+
+            var rowRangeWithResult = await table.Query(partitionRange: exactRange, rowRange: aToZ);
+            var partitionRangeWithResult = await table.Query(partitionRange: aToZ, rowRange: exactRange);
+            var rowRangeWithoutResult = await table.Query(partitionRange: exactRange, rowRange: aToS);
+            var partitionRangeWithoutResult = await table.Query(partitionRange: aToS, rowRange: exactRange);
+            Assert.AreEqual(2, rowRangeWithResult.Results.Count + partitionRangeWithResult.Results.Count);
+            Assert.AreEqual(0, rowRangeWithoutResult.Results.Count + partitionRangeWithoutResult.Results.Count);
+        }
+
+        [TestMethod]
+        public async Task Continuation()
+        {
+            var table = await GetTestTable();
+            var partition = nameof(this.Continuation);
+            foreach(var i in Enumerable.Range(0, 2))
+                await table.Put(new Key(partition: partition, row: i.ToString()), new Dict{["val"]=i});
+            var exactPartition = Range.SingleElement(partition);
+            var rowRange = new Range<string>("0", "1");
+            var item1 = await table.Query(partitionRange: exactPartition, rowRange: rowRange, pageSize: 1);
+            Assert.IsNotNull(item1.NextPageToken);
+            var item2 = await table.Query(partitionRange: exactPartition, rowRange: rowRange, pageSize: 1,
+                continuationToken: item1.NextPageToken);
+            Assert.AreEqual(0, item1.Results.Single().Value["val"]);
+            Assert.AreEqual(1, item2.Results.Single().Value["val"]);
         }
     }
 }

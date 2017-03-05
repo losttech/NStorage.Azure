@@ -9,16 +9,18 @@ namespace LostTech.Storage
     using System.Threading.Tasks;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Table;
+    using Newtonsoft.Json;
     using Key = PartitionedKey<string, string>;
     using Value = System.Collections.Generic.IDictionary<string, object>;
     using Partition = System.String;
     using Row = System.String;
     using Version = System.String;
+    using Continuation = System.String;
 
-    public sealed class AzureTable:
+    public sealed partial class AzureTable:
         IConcurrentVersionedKeyValueStore<Key, Version, Value>,
         IPartitionConcurrentVersionedKeyValueStore<Partition, Row, Version, Value>,
-        IPartitionedKeyValueStore<Partition, Row, Value>
+        IPartitionedKeyValueStore<Partition, Row, Value, Continuation>
     {
         const string EntityCanOnlyAppearOnceInBatch = "An entity can only appear once in batch operation";
         const string TooManyEntitiesMessage = "Too many entities. Supported maximum is 100";
@@ -254,11 +256,9 @@ namespace LostTech.Storage
 
         public int? PageSizeLimit => 1000;
 
-        public async Task<PagedQueryResult<KeyValuePair<Key, Value>>> Query(Range<string> partitionRange, Range<string> rowRange,
-            int? pageSize = null, object continuationToken = null)
+        public async Task<PagedQueryResult<KeyValuePair<Key, Value>, Continuation>> Query(Range<string> partitionRange, Range<string> rowRange,
+            int? pageSize = null, Continuation continuationToken = null)
         {
-            if (continuationToken != null && !(continuationToken is TableContinuationToken))
-                throw new ArgumentException(paramName: nameof(continuationToken), message: "Unexpected type");
             if ((pageSize ?? 1) <= 0)
                 throw new ArgumentOutOfRangeException(paramName: nameof(pageSize));
             if ((PageSizeLimit ?? int.MaxValue) < (pageSize ?? 1))
@@ -273,19 +273,22 @@ namespace LostTech.Storage
                 TakeCount = pageSize,
             }.Where(filter);
 
-            var page = await this.table.ExecuteQuerySegmentedAsync(query, (TableContinuationToken)continuationToken).ConfigureAwait(false);
+            var actualToken = ContinuationToken.Deserialize(continuationToken);
+
+            var page = await this.table.ExecuteQuerySegmentedAsync(query, actualToken).ConfigureAwait(false);
             var results = page.Results.Select(entity => new KeyValuePair<Key, Value>(
                     key: new Key(partition: KeyDecode(entity.PartitionKey), row: KeyDecode(entity.RowKey)),
                     value: ParseValue(entity)
                 )).ToArray();
-            return new PagedQueryResult<KeyValuePair<Key, Value>>(results, page.ContinuationToken);
+            var serializedContinuation = ContinuationToken.Serialize(page.ContinuationToken);
+            return new PagedQueryResult<KeyValuePair<Key, Value>, Continuation>(results, serializedContinuation);
         }
 
         static string RangeFilter(string propertyName, Range<string> range) =>
             TableQuery.CombineFilters(
                 TableQuery.GenerateFilterCondition(propertyName, QueryComparisons.GreaterThanOrEqual, KeyEncode(range.Start)),
                 TableOperators.And,
-                TableQuery.GenerateFilterCondition(propertyName, QueryComparisons.GreaterThanOrEqual, KeyEncode(range.End)));
+                TableQuery.GenerateFilterCondition(propertyName, QueryComparisons.LessThanOrEqual, KeyEncode(range.End)));
 
         static readonly Regex UnsupportedKeyCharRegex = new Regex(@"[\\/#\?%]", RegexOptions.Compiled | RegexOptions.CultureInvariant);
         static readonly Regex UnsupportedEscapedKeyCharRegex = new Regex(@"\%[a-f0-9]{2}", RegexOptions.Compiled | RegexOptions.CultureInvariant);
