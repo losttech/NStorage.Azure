@@ -55,10 +55,10 @@ namespace LostTech.Storage
                 .Where(kv => AzureTableEntity.IsKey(kv.Key))
                 .ToDictionary(kv => AzureTableEntity.DecodeKey(kv.Key), kv => kv.Value.PropertyAsObject);
 
-        private static TableQuery MakeQueryByKey(Key key)
+        private static TableQuery<DynamicTableEntity> MakeQueryByKey(Key key)
         {
             key = KeyEncode(key);
-            return new TableQuery().Where(
+            return new TableQuery<DynamicTableEntity>().Where(
                 TableQuery.CombineFilters(
                     TableQuery.GenerateFilterCondition(nameof(ITableEntity.RowKey), QueryComparisons.Equal, key.Row),
                     TableOperators.And,
@@ -269,7 +269,7 @@ namespace LostTech.Storage
                 TableOperators.And,
                 RangeFilter(nameof(ITableEntity.PartitionKey), partitionRange));
 
-            var query = new TableQuery {
+            var query = new TableQuery<DynamicTableEntity> {
                 TakeCount = pageSize,
             }.Where(filter);
 
