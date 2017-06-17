@@ -5,7 +5,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <TargetFramework>netstandard1.4</TargetFramework>
-   <VersionPrefix>0.2.0</VersionPrefix>
+   <VersionPrefix>0.3.0</VersionPrefix>
     <Authors>Victor Milovanov</Authors>
     <Company>Lost Tech LLC</Company>
     <Product>LostTech.Storage</Product>
