@@ -190,6 +190,7 @@ namespace LostTech.Storage
                 return result.HttpStatusCode >= 200 && result.HttpStatusCode < 300;
             } catch (StorageException exception)
                   when (exception.RequestInformation.HttpStatusCode == (int)HttpStatusCode.PreconditionFailed
+                      || exception.RequestInformation.HttpStatusCode == (int)HttpStatusCode.NotFound
                       || exception.RequestInformation.HttpStatusCode == (int)HttpStatusCode.Conflict) {
                 return false;
             }
@@ -223,9 +224,15 @@ namespace LostTech.Storage
 
             key = KeyEncode(key);
             var entity = AzureTableEntity.KeyOnly(key);
-            await this.table.ExecuteAsync(TableOperation.Delete(entity)).ConfigureAwait(false);
-            // TODO: implement return code
-            return null;
+            try
+            {
+                await this.table.ExecuteAsync(TableOperation.Delete(entity)).ConfigureAwait(false);
+                return true;
+            }
+            catch (StorageException e) when (e.RequestInformation.HttpStatusCode == (int)HttpStatusCode.NotFound)
+            {
+                return false;
+            }
         }
 
         internal static void CheckKey(Key key)
